@@ -8,6 +8,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::{HtmlCanvasElement, MouseEvent};
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlVertexArrayObject};
 
+use model3d_gl::Gl;
 use model3d_gl::{GlProgram, Model3DWebGL};
 type Program = <Model3DWebGL as model3d_gl::Gl>::Program;
 
@@ -27,7 +28,7 @@ type ClosureSet = HashMap<&'static str, Closure<dyn FnMut()>>;
 /// context, state, and closures
 pub struct Inner {
     canvas: HtmlCanvasElement,
-    context: WebGl2RenderingContext,
+    model3d: model3d_gl::Model3DWebGL,
     program: Program,
     vaos: RefCell<Vec<WebGlVertexArrayObject>>,
     closures: RefCell<ClosureSet>,
@@ -45,14 +46,15 @@ impl Inner {
             .unwrap()
             .dyn_into::<WebGl2RenderingContext>()?;
 
-        let program = shader::compile_shader_program(&context)?;
-        program.set_used(&context);
+        let model3d = Model3DWebGL::new(context);
+        let program = shader::compile_shader_program(&model3d)?;
+        model3d.use_program(Some(&program));
 
         let closures = HashMap::new().into();
         let vaos = vec![].into();
         let inner = Self {
             canvas,
-            context,
+            model3d,
             program,
             closures,
             vaos,
@@ -149,10 +151,10 @@ impl Inner {
             .find_map(|(n, v)| (*v == model3d_base::VertexAttr::Position).then_some(*n))
             .unwrap();
         let buffer = self
-            .context
+            .model3d
             .create_buffer()
             .ok_or("Failed to create buffer")?;
-        self.context
+        self.model3d
             .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
 
         // Note that `Float32Array::view` is somewhat dangerous (hence the
@@ -166,7 +168,7 @@ impl Inner {
         unsafe {
             let positions_array_buf_view = js_sys::Float32Array::view(&vertices);
 
-            self.context.buffer_data_with_array_buffer_view(
+            self.model3d.buffer_data_with_array_buffer_view(
                 WebGl2RenderingContext::ARRAY_BUFFER,
                 &positions_array_buf_view,
                 WebGl2RenderingContext::STATIC_DRAW,
@@ -174,12 +176,12 @@ impl Inner {
         }
 
         let vao = self
-            .context
+            .model3d
             .create_vertex_array()
             .ok_or("Could not create vertex array object")?;
-        self.context.bind_vertex_array(Some(&vao));
+        self.model3d.bind_vertex_array(Some(&vao));
 
-        self.context.vertex_attrib_pointer_with_i32(
+        self.model3d.vertex_attrib_pointer_with_i32(
             position_attribute_location as u32,
             3,
             WebGl2RenderingContext::FLOAT,
@@ -187,19 +189,19 @@ impl Inner {
             0,
             0,
         );
-        self.context
+        self.model3d
             .enable_vertex_attrib_array(position_attribute_location as u32);
         Ok(vao)
     }
 
     //mp draw
     pub fn draw(&self, vert_count: i32) {
-        self.context.bind_vertex_array(Some(&self.vaos.borrow()[0]));
+        self.model3d.bind_vertex_array(Some(&self.vaos.borrow()[0]));
 
-        self.context.clear_color(0.0, 0.0, 0.0, 1.0);
-        self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+        self.model3d.clear_color(0.0, 0.0, 0.0, 1.0);
+        self.model3d.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-        self.context
+        self.model3d
             .draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, vert_count);
     }
 
