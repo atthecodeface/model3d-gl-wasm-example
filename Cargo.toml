@@ -14,9 +14,13 @@ crate-type = ["cdylib"]
 wasm-bindgen = ">=0.2.74"
 js-sys = ">=0.3.64"
 
-#[dependencies.model3d-base]
-#version = "0.1"
-#path = "../model3d-rs"
+[dependencies.model3d-base]
+version = "0.1"
+path = "../model3d-rs"
+
+[dependencies.model3d-gl]
+version = "0.1"
+path = "../model3d-gl"
 
 [dependencies.web-sys]
 features = [

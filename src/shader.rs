@@ -52,10 +52,12 @@ pub fn link_program(
     }
 }
 
-pub fn compile_shader_program(context: &WebGl2RenderingContext) -> Result<WebGlProgram, String> {
-    let vert_shader = compile_shader(
+use model3d_gl::{Gl, GlShaderType, Model3DWebGL};
+type GlProgram = <Model3DWebGL as model3d_gl::Gl>::Program;
+pub fn compile_shader_program(context: &WebGl2RenderingContext) -> Result<GlProgram, String> {
+    let vert_shader = Model3DWebGL::compile_shader(
         context,
-        WebGl2RenderingContext::VERTEX_SHADER,
+        GlShaderType::Vertex,
         r##"#version 300 es
  
         in vec4 position;
@@ -67,9 +69,9 @@ pub fn compile_shader_program(context: &WebGl2RenderingContext) -> Result<WebGlP
         "##,
     )?;
 
-    let frag_shader = compile_shader(
+    let frag_shader = Model3DWebGL::compile_shader(
         context,
-        WebGl2RenderingContext::FRAGMENT_SHADER,
+        GlShaderType::Fragment,
         r##"#version 300 es
     
         precision highp float;
@@ -80,6 +82,7 @@ pub fn compile_shader_program(context: &WebGl2RenderingContext) -> Result<WebGlP
         }
         "##,
     )?;
-    let program = link_program(&context, &vert_shader, &frag_shader)?;
+    let mut program = Model3DWebGL::link_program(context, &[&vert_shader, &frag_shader])?;
+    program.add_attr_name(context, "position", model3d_base::VertexAttr::Position);
     Ok(program)
 }

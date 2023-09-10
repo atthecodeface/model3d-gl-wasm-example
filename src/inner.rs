@@ -8,6 +8,9 @@ use wasm_bindgen::prelude::*;
 use web_sys::{HtmlCanvasElement, MouseEvent};
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlVertexArrayObject};
 
+use model3d_gl::{GlProgram, Model3DWebGL};
+type Program = <Model3DWebGL as model3d_gl::Gl>::Program;
+
 use crate::shader;
 
 //a Inner (and ClosureSet)
@@ -25,7 +28,7 @@ type ClosureSet = HashMap<&'static str, Closure<dyn FnMut()>>;
 pub struct Inner {
     canvas: HtmlCanvasElement,
     context: WebGl2RenderingContext,
-    program: WebGlProgram,
+    program: Program,
     vaos: RefCell<Vec<WebGlVertexArrayObject>>,
     closures: RefCell<ClosureSet>,
 }
@@ -43,7 +46,7 @@ impl Inner {
             .dyn_into::<WebGl2RenderingContext>()?;
 
         let program = shader::compile_shader_program(&context)?;
-        context.use_program(Some(&program));
+        program.set_used(&context);
 
         let closures = HashMap::new().into();
         let vaos = vec![].into();
@@ -139,8 +142,12 @@ impl Inner {
     fn create_model(&self) -> Result<WebGlVertexArrayObject, String> {
         let vertices: [f32; 9] = [-0.7, -0.7, 0.0, 0.7, -0.7, 0.0, 0.0, 0.7, 0.0];
 
-        let position_attribute_location =
-            self.context.get_attrib_location(&self.program, "position");
+        let position_attribute_location = self
+            .program
+            .attributes()
+            .iter()
+            .find_map(|(n, v)| (*v == model3d_base::VertexAttr::Position).then_some(*n))
+            .unwrap();
         let buffer = self
             .context
             .create_buffer()
