@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>CanvasWebgl Wasm Example</title>
+  </head>
+  <body>
+    <script type="module">
+      var canvas = document.getElementById('canvas'); 
+      import init, {CanvasWebgl} from "./pkg/canvas_webgl.js";
+      init().then(() => {
+          window.canvas_webgl = new CanvasWebgl(canvas);
+      });
+    </script>
+    <input type="button" value="Shutdown" onclick="window.canvas_webgl.shutdown()"/>
+    <input type="button" value="Fill" onclick="window.canvas_webgl.fill()"/>
+    <canvas id="canvas" width="400" height="400" style="border:solid"/>
+  </body>
+</html>
