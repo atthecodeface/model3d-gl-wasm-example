@@ -15,7 +15,7 @@ wasm-bindgen = ">=0.2.74"
 js-sys = ">=0.3.64"
 
 [dependencies.model3d-base]
-version = "0.1"
+version = "0.2"
 path = "../model3d-rs"
 
 [dependencies.model3d-gl]
