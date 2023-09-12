@@ -27,11 +27,10 @@ pub fn compile_shader_program(model3d: &Model3DWebGL) -> Result<GlProgram, Strin
         }
         "##,
     )?;
-    let mut program = model3d.link_program(&[&vert_shader, &frag_shader])?;
-    program.add_attr_name(
-        model3d.context(),
-        "position",
-        model3d_base::VertexAttr::Position,
-    );
-    Ok(program)
+    model3d.link_program(
+        &[&vert_shader, &frag_shader],
+        &[("position", model3d_base::VertexAttr::Position)],
+        &[],
+        &[],
+    )
 }
