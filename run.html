@@ -6,11 +6,6 @@
   </head>
   <body>
     <script type="module">
-      var canvas = document.getElementById('canvas'); 
-      import init, {CanvasWebgl} from "./pkg/canvas_webgl.js";
-      init().then(() => {
-                           window.canvas_webgl = new CanvasWebgl(canvas);
-      });
 class Thing {
     constructor() {
     this.run_step_pending = false;
@@ -39,12 +34,16 @@ class Thing {
         }
     }
     }
- window.thing=new Thing();
+
+      var canvas = document.getElementById('canvas'); 
+      import init, {CanvasWebgl} from "./pkg/canvas_webgl.js";
+      init().then(() => {
+                  window.canvas_webgl = new CanvasWebgl(canvas);
+                  window.canvas_webgl.create_f();
+                  window.thing=new Thing();
+                  window.thing.set_animating(true);
+      });
     </script>
-    <input type="button" value="Shutdown" onclick="window.canvas_webgl.shutdown()"/>
-    <input type="button" value="Create" onclick="window.canvas_webgl.create_f();"/>
-    <input type="button" value="Fill" onclick="window.canvas_webgl.fill()"/>
-    <input type="button" value="Animate" onclick="window.thing.set_animating(!window.thing.animating)"/>
     <canvas id="canvas" width="400" height="400" style="border:solid"/>
   </body>
 </html>

@@ -8,6 +8,10 @@ mod inner;
 use inner::Inner;
 pub mod shader;
 
+mod base_shader;
+mod model;
+mod objects;
+
 //a CanvasWebgl - the external interface
 //tp CanvasWebgl
 /// A paint module that is attached to a Canvas element in an HTML
@@ -25,9 +29,10 @@ impl CanvasWebgl {
     /// Create a new CanvasWebgl attached to a Canvas HTML element,
     /// adding events to the canvas that provide the paint program
     #[wasm_bindgen(constructor)]
-    pub fn new(canvas: HtmlCanvasElement) -> CanvasWebgl {
-        let inner = Inner::new(canvas).unwrap();
-        Self { inner }
+    pub fn new(canvas: HtmlCanvasElement) -> Result<CanvasWebgl, JsValue> {
+        console_error_panic_hook::set_once();
+        let inner = Inner::new(canvas)?;
+        Ok(Self { inner })
     }
 
     //mp shutdown
@@ -36,10 +41,14 @@ impl CanvasWebgl {
         self.inner.shutdown()
     }
 
+    //mp create_f
+    pub fn create_f(&mut self) -> Result<(), JsValue> {
+        Ok(std::rc::Rc::get_mut(&mut self.inner).unwrap().create_f()?)
+    }
     //mp fill
     /// Fill
-    pub fn fill(&self) -> Result<(), JsValue> {
-        Ok(self.inner.fill())
+    pub fn fill(&mut self) -> Result<(), JsValue> {
+        Ok(std::rc::Rc::get_mut(&mut self.inner).unwrap().fill())
     }
 
     //zz All done

@@ -23,6 +23,14 @@ use crate::shader;
 /// removed from the element they were attached to as listeners
 type ClosureSet = HashMap<&'static str, Closure<dyn FnMut()>>;
 
+//ti F
+struct F {
+    base: Box<crate::model::Base<Model3DWebGL>>,
+    instantiable: crate::model::Instantiable<'static, Model3DWebGL>,
+    instances: RefCell<crate::model::Instances<'static, Model3DWebGL>>,
+    game_state: RefCell<crate::model::GameState>,
+}
+
 //tp Inner
 /// The actual CanvasArt paint structure, with canvas and rendering
 /// context, state, and closures
@@ -31,6 +39,7 @@ pub struct Inner {
     model3d: model3d_gl::Model3DWebGL,
     program: Program,
     vaos: RefCell<Vec<WebGlVertexArrayObject>>,
+    f: Option<F>,
     closures: RefCell<ClosureSet>,
 }
 
@@ -46,9 +55,11 @@ impl Inner {
             .unwrap()
             .dyn_into::<WebGl2RenderingContext>()?;
 
-        let model3d = Model3DWebGL::new(context);
+        let mut model3d = Model3DWebGL::new(context);
         let program = shader::compile_shader_program(&model3d)?;
         model3d.use_program(Some(&program));
+
+        let f = None;
 
         let closures = HashMap::new().into();
         let vaos = vec![].into();
@@ -58,9 +69,11 @@ impl Inner {
             program,
             closures,
             vaos,
+            f,
         };
         let vao = inner.create_model()?;
         inner.vaos.borrow_mut().push(vao);
+
         Ok(inner.into())
     }
 
@@ -103,7 +116,7 @@ impl Inner {
 
     //mp fill
     /// Fill the canvas with transparent black
-    pub fn fill(&self) {
+    pub fn fill(&mut self) {
         self.draw(3);
     }
 
@@ -142,7 +155,9 @@ impl Inner {
 
     //mi create_model
     fn create_model(&self) -> Result<WebGlVertexArrayObject, String> {
-        let vertices: [f32; 9] = [-0.7, -0.7, 0.0, 0.7, -0.7, 0.0, 0.0, 0.7, 0.0];
+        let vertices: &[f32] = &[
+            -0.7, -0.7, 0.0, 0.7, -0.7, 0.0, 0.0, 0.7, 0.0, -1.0, 1.0, 0.0,
+        ];
 
         let position_attribute_location = self
             .program
@@ -165,15 +180,24 @@ impl Inner {
         //
         // As a result, after `Float32Array::view` we have to be very careful not to
         // do any memory allocations before it's dropped.
-        unsafe {
-            let positions_array_buf_view = js_sys::Float32Array::view(&vertices);
+        // unsafe {
+        // let positions_array_buf_view = js_sys::Float32Array::view(&vertices);
+        //
+        // self.model3d.buffer_data_with_array_buffer_view(
+        // WebGl2RenderingContext::ARRAY_BUFFER,
+        // &positions_array_buf_view,
+        // WebGl2RenderingContext::STATIC_DRAW,
+        // );
+        // }
 
-            self.model3d.buffer_data_with_array_buffer_view(
-                WebGl2RenderingContext::ARRAY_BUFFER,
-                &positions_array_buf_view,
-                WebGl2RenderingContext::STATIC_DRAW,
-            );
-        }
+        let len = std::mem::size_of::<f32>() * vertices.len();
+        let data = &vertices[0] as *const f32 as *const u8;
+        let data = unsafe { std::slice::from_raw_parts(data, len) };
+        self.model3d.buffer_data_with_u8_array(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            data,
+            WebGl2RenderingContext::STATIC_DRAW,
+        );
 
         let vao = self
             .model3d
@@ -191,18 +215,47 @@ impl Inner {
         );
         self.model3d
             .enable_vertex_attrib_array(position_attribute_location as u32);
+        self.model3d
+            .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
         Ok(vao)
     }
 
-    //mp draw
-    pub fn draw(&self, vert_count: i32) {
-        self.model3d.bind_vertex_array(Some(&self.vaos.borrow()[0]));
+    //mp create_f
+    pub fn create_f(&mut self) -> Result<(), String> {
+        if self.f.is_some() {
+            return Err("Already created".to_string());
+        }
+        let m = Box::new(crate::model::Base::new(&mut self.model3d)?);
+        let f = {
+            let m_ref =
+                unsafe { std::mem::transmute::<_, &'static crate::model::Base<Model3DWebGL>>(&*m) };
+            let instantiable = m_ref.make_instantiable(&mut self.model3d)?;
+            let instances = m_ref.make_instances().into();
+            let game_state = crate::model::GameState::new().into();
+            F {
+                base: m,
+                instantiable,
+                instances,
+                game_state,
+            }
+        };
+        self.f = Some(f);
+        Ok(())
+    }
 
+    //mp draw
+    pub fn draw(&mut self, vert_count: i32) {
         self.model3d.clear_color(0.0, 0.0, 0.0, 1.0);
         self.model3d.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-        self.model3d
-            .draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, vert_count);
+        let model3d = &mut self.model3d;
+        if let Some(ref mut f) = self.f {
+            let base = &f.base;
+            let mut game_state = f.game_state.borrow_mut();
+            let instantiable = &f.instantiable;
+            let mut instances = f.instances.borrow_mut();
+            base.update(model3d, &mut game_state, instantiable, &mut instances);
+        }
     }
 
     //zz All done

@@ -11,16 +11,22 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = ">=0.2.74"
-js-sys = ">=0.3.64"
+geo-nd       = "0.5"
 
 [dependencies.model3d-base]
 version = "0.2"
-path = "../model3d-rs"
+path = "../model3d-base"
 
 [dependencies.model3d-gl]
 version = "0.1"
 path = "../model3d-gl"
+features = ["webgl"]
+
+[dependencies.wasm-bindgen]
+version = ">=0.2.74"
+
+[dependencies.js-sys]
+version = ">=0.3.64"
 
 [dependencies.web-sys]
 features = [
@@ -41,6 +47,10 @@ features = [
 ]
 version = ">=0.3.40"
 
+[dependencies.console_error_panic_hook]
+version = "0.1"
+
 [profile.release]
-lto = true
-opt-level = 3
+debug = true
+# lto = true
+# opt-level = 3
