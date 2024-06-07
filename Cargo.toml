@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 geo-nd       = "0.5"
 
 [dependencies.model3d-base]
-version = "0.2"
+version = ">=0.3"
 path = "../model3d-base"
 
 [dependencies.model3d-gl]
