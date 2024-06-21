@@ -54,7 +54,7 @@ pub struct Instances<'inst, G: Gl> {
 //ip Base
 impl<G: Gl> Base<G> {
     //fp new
-    pub fn new(gl: &mut G) -> Result<Self, String> {
+    pub fn new(gl: &mut G, opt_glb: Option<&[u8]>) -> Result<Self, String> {
         let shader_program = base_shader::compile_shader_program(gl)?;
 
         let material_uid = 1;
@@ -87,7 +87,13 @@ impl<G: Gl> Base<G> {
         gl.program_bind_uniform_index(&shader_program, 2, world_uid)
             .map_err(|_| "Could not bind uniform for world".to_string())?;
 
-        let objects = objects::new(gl);
+        let objects = {
+            if let Some(glb) = opt_glb {
+                objects::new_of_glb(gl, glb).unwrap()
+            } else {
+                objects::new(gl).unwrap()
+            }
+        };
         Ok(Self {
             objects,
             shader_program,

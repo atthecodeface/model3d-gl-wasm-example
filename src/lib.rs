@@ -12,6 +12,24 @@ mod base_shader;
 mod model;
 mod objects;
 
+#[wasm_bindgen]
+extern "C" {
+    // Use `js_namespace` here to bind `console.log(..)` instead of just
+    // `log(..)`
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn log(s: &str);
+}
+
+#[macro_export]
+macro_rules! console_log {
+    // Note that this is using the `log` function imported above during
+    // `bare_bones`
+    ($($t:tt)*) => (
+        #[allow(unused_unsafe)]
+        unsafe { crate::log(&format_args!($($t)*).to_string())}
+    )
+}
+
 //a CanvasWebgl - the external interface
 //tp CanvasWebgl
 /// A paint module that is attached to a Canvas element in an HTML
@@ -45,6 +63,16 @@ impl CanvasWebgl {
     pub fn create_f(&mut self) -> Result<(), JsValue> {
         Ok(std::rc::Rc::get_mut(&mut self.inner).unwrap().create_f()?)
     }
+
+    //mp create_f2
+    pub fn create_f2(&mut self, glb: JsValue) -> Result<(), JsValue> {
+        let glb = js_sys::Uint8Array::new(&glb);
+        let glb = glb.to_vec();
+        Ok(std::rc::Rc::get_mut(&mut self.inner)
+            .unwrap()
+            .create_f2(&glb)?)
+    }
+
     //mp fill
     /// Fill
     pub fn fill(&mut self) -> Result<(), JsValue> {

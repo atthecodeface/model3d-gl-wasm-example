@@ -40,6 +40,7 @@ void main()
 {
     World_position = uModelMatrix * uMeshMatrix * vec4(Position, 1.);
     gl_Position = world.view_matrix * World_position;
+    gl_Position = World_position * vec4(0.3,0.3,0.3,1.0);
     //     gl_Position = World_position;
     //     gl_Position = vec4(Position, 1.);
     Normal_frag = Normal;

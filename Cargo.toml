@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 geo-nd       = "0.5"
+serde_json = "1.0.117"
 
 [dependencies.model3d-base]
 version = ">=0.3"
@@ -21,6 +22,10 @@ path = "../model3d-base"
 version = "0.1"
 path = "../model3d-gl"
 features = ["webgl"]
+
+[dependencies.model3d-gltf]
+version = "0.0.1"
+path = "../model3d-gltf"
 
 [dependencies.wasm-bindgen]
 version = ">=0.2.74"
@@ -45,7 +50,7 @@ features = [
   'WebGlShader',
   'Window',
 ]
-version = ">=0.3.40"
+version = ">=0.3.69"
 
 [dependencies.console_error_panic_hook]
 version = "0.1"

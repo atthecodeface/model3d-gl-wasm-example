@@ -225,7 +225,32 @@ impl Inner {
         if self.f.is_some() {
             return Err("Already created".to_string());
         }
-        let m = Box::new(crate::model::Base::new(&mut self.model3d)?);
+        let m = Box::new(crate::model::Base::new(&mut self.model3d, None)?);
+        let f = {
+            let m_ref =
+                unsafe { std::mem::transmute::<_, &'static crate::model::Base<Model3DWebGL>>(&*m) };
+            let instantiable = m_ref.make_instantiable(&mut self.model3d)?;
+            let instances = m_ref.make_instances().into();
+            let game_state = crate::model::GameState::new().into();
+            F {
+                base: m,
+                instantiable,
+                instances,
+                game_state,
+            }
+        };
+        self.f = Some(f);
+        Ok(())
+    }
+
+    //mp create_f2
+    pub fn create_f2(&mut self, glb: &[u8]) -> Result<(), String> {
+        if self.f.is_some() {
+            return Err("Already created".to_string());
+        }
+        crate::console_log!("create_f2 create model {}", glb.len());
+        let m = Box::new(crate::model::Base::new(&mut self.model3d, Some(glb))?);
+        crate::console_log!("create_f2 created model");
         let f = {
             let m_ref =
                 unsafe { std::mem::transmute::<_, &'static crate::model::Base<Model3DWebGL>>(&*m) };
@@ -245,6 +270,8 @@ impl Inner {
 
     //mp draw
     pub fn draw(&mut self, vert_count: i32) {
+        // self.model3d.enable(WebGl2RenderingContext::CULL_FACE);
+        self.model3d.enable(WebGl2RenderingContext::DEPTH_TEST);
         self.model3d.clear_color(0.0, 0.0, 0.0, 1.0);
         self.model3d.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 

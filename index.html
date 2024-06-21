@@ -2,47 +2,13 @@
 <html lang="en-US">
   <head>
     <meta charset="utf-8" />
-    <title>CanvasWebgl Wasm Example</title>
+    <title>Gltf Viewer</title>
   </head>
   <body>
-    <script type="module">
-      var canvas = document.getElementById('canvas'); 
-      import init, {CanvasWebgl} from "./pkg/canvas_webgl.js";
-      init().then(() => {
-                           window.canvas_webgl = new CanvasWebgl(canvas);
-      });
-class Thing {
-    constructor() {
-    this.run_step_pending = false;
-    this.animating = false;
-    }
-    set_animating(a) {
-        console.log("Set animating",a, this.run_step_pending);
-        if (a) {
-            if (this.run_step_pending) {return;}
-            this.animating = true;
-            this.init_time = Date.now();
-            this.run_step();
-        } else {
-            this.animating = false;
-        }
-    }
-    run_step() {
-        this.run_step_pending = false;
-        if (this.animating) {
-            this.time_last = this.time;
-            this.time = (Date.now() - this.init_time) * 0.001;
-            //            this.handle_tick(this.time, this.time_last);
-            window.canvas_webgl.fill();
-            requestAnimationFrame(()=>this.run_step());
-            this.run_step_pending = true;
-        }
-    }
-    }
- window.thing=new Thing();
-    </script>
+    <script type="module" src="./gltf_viewer.js"></script>
     <input type="button" value="Shutdown" onclick="window.canvas_webgl.shutdown()"/>
     <input type="button" value="Create" onclick="window.canvas_webgl.create_f();"/>
+    <input type="button" value="Create2" onclick="window.thing.load_glb();"/>
     <input type="button" value="Fill" onclick="window.canvas_webgl.fill()"/>
     <input type="button" value="Animate" onclick="window.thing.set_animating(!window.thing.animating)"/>
     <canvas id="canvas" width="400" height="400" style="border:solid"/>
