@@ -26,7 +26,7 @@ macro_rules! console_log {
     // `bare_bones`
     ($($t:tt)*) => (
         #[allow(unused_unsafe)]
-        unsafe { crate::log(&format_args!($($t)*).to_string())}
+        unsafe { $crate::log(&format_args!($($t)*).to_string())}
     )
 }
 
@@ -70,13 +70,14 @@ impl CanvasWebgl {
         let glb = glb.to_vec();
         Ok(std::rc::Rc::get_mut(&mut self.inner)
             .unwrap()
-            .create_f2(&glb)?)
+            .create_f2(&glb, &["0"])?)
     }
 
     //mp fill
     /// Fill
     pub fn fill(&mut self) -> Result<(), JsValue> {
-        Ok(std::rc::Rc::get_mut(&mut self.inner).unwrap().fill())
+        std::rc::Rc::get_mut(&mut self.inner).unwrap().fill();
+        Ok(())
     }
 
     //zz All done

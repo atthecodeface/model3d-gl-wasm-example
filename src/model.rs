@@ -54,7 +54,7 @@ pub struct Instances<'inst, G: Gl> {
 //ip Base
 impl<G: Gl> Base<G> {
     //fp new
-    pub fn new(gl: &mut G, opt_glb: Option<&[u8]>) -> Result<Self, String> {
+    pub fn new(gl: &mut G, opt_glb: Option<(&[u8], &[&str])>) -> Result<Self, String> {
         let shader_program = base_shader::compile_shader_program(gl)?;
 
         let material_uid = 1;
@@ -88,8 +88,8 @@ impl<G: Gl> Base<G> {
             .map_err(|_| "Could not bind uniform for world".to_string())?;
 
         let objects = {
-            if let Some(glb) = opt_glb {
-                objects::new_of_glb(gl, glb).unwrap()
+            if let Some((glb, node_names)) = opt_glb {
+                objects::new_of_glb(gl, glb, node_names).unwrap()
             } else {
                 objects::new(gl).unwrap()
             }
@@ -113,7 +113,7 @@ impl<G: Gl> Base<G> {
     }
 
     //fp make_instances
-    pub fn make_instances<'inst>(&'inst self) -> Instances<'inst, G> {
+    pub fn make_instances(&self) -> Instances<'_, G> {
         let instance = self.objects.instantiate();
         Instances { instance }
     }

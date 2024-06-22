@@ -1,12 +1,10 @@
 //a Imports
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-use std::f64;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
-use web_sys::{HtmlCanvasElement, MouseEvent};
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlVertexArrayObject};
+use web_sys::HtmlCanvasElement;
+use web_sys::{WebGl2RenderingContext, WebGlVertexArrayObject};
 
 use model3d_gl::Gl;
 use model3d_gl::{GlProgram, Model3DWebGL};
@@ -15,14 +13,6 @@ type Program = <Model3DWebGL as model3d_gl::Gl>::Program;
 use crate::shader;
 
 //a Inner (and ClosureSet)
-//ti ClosureSet
-/// A dictionary of event name to closure, of event listeners added to
-/// (e.g.) a Canvas
-///
-/// The closure set entries can be dropped, once they have been
-/// removed from the element they were attached to as listeners
-type ClosureSet = HashMap<&'static str, Closure<dyn FnMut()>>;
-
 //ti F
 struct F {
     base: Box<crate::model::Base<Model3DWebGL>>,
@@ -35,12 +25,15 @@ struct F {
 /// The actual CanvasArt paint structure, with canvas and rendering
 /// context, state, and closures
 pub struct Inner {
+    /// We hold on to the canvas - this might be needed to keep
+    /// control of the context, or it might just be a hangover from
+    /// when this module used event listeners
+    #[allow(dead_code)]
     canvas: HtmlCanvasElement,
     model3d: model3d_gl::Model3DWebGL,
     program: Program,
     vaos: RefCell<Vec<WebGlVertexArrayObject>>,
     f: Option<F>,
-    closures: RefCell<ClosureSet>,
 }
 
 //ip Inner
@@ -55,19 +48,17 @@ impl Inner {
             .unwrap()
             .dyn_into::<WebGl2RenderingContext>()?;
 
-        let mut model3d = Model3DWebGL::new(context);
+        let model3d = Model3DWebGL::new(context);
         let program = shader::compile_shader_program(&model3d)?;
         model3d.use_program(Some(&program));
 
         let f = None;
 
-        let closures = HashMap::new().into();
         let vaos = vec![].into();
         let inner = Self {
             canvas,
             model3d,
             program,
-            closures,
             vaos,
             f,
         };
@@ -77,81 +68,20 @@ impl Inner {
         Ok(inner.into())
     }
 
-    //mp add_closures
-    /// Add event listeners as required; they are also put into the
-    /// ClosureSet so that they can be removed later, and the Inner
-    /// (handled as a Rc<Inner>) will have its uses dropped as the
-    /// Closures themselves are dropped; hence the Rc<Inner> should
-    /// have no uses after this due to the event listeners that may
-    /// have been added in the past.
-    pub fn add_closures(self: &Rc<Self>) -> Result<(), JsValue> {
-        {
-            let inner = self.clone();
-            self.add_closure("mousedown", move |event| inner.mouse_down(event))?;
-        }
-        {
-            let inner = self.clone();
-            self.add_closure("mouseup", move |event| inner.mouse_up(event))?;
-        }
-        {
-            let inner = self.clone();
-            self.add_closure("mousemove", move |event| inner.mouse_move(event))?;
-        }
-        Ok(())
-    }
-
     //mp shutdown
     /// Remove all the event listeneres added (in the ClosureSet) and
     /// drop the closures
     ///
     /// This should be called prior to dropping the Inner so that it is not leaked.
     pub fn shutdown(&self) -> Result<(), JsValue> {
-        let closures = self.closures.take();
-        for (reason, closure) in closures.into_iter() {
-            self.canvas
-                .remove_event_listener_with_callback(reason, closure.as_ref().unchecked_ref())?
-        }
         Ok(())
     }
 
     //mp fill
     /// Fill the canvas with transparent black
     pub fn fill(&mut self) {
-        self.draw(3);
+        self.draw();
     }
-
-    //mi add_closure
-    /// Add a single event listener to the canvas given a callback
-    /// function (that should match that required in terms of
-    /// arguments)
-    fn add_closure<Args, F>(
-        self: &Rc<Self>,
-        reason: &'static str,
-        callback: F,
-    ) -> Result<(), JsValue>
-    where
-        F: FnMut(Args) + 'static,
-        Args: wasm_bindgen::convert::FromWasmAbi + 'static,
-    {
-        let closure = Closure::<dyn FnMut(_)>::new(callback);
-        self.canvas
-            .add_event_listener_with_callback(reason, closure.as_ref().unchecked_ref())?;
-        let closure = unsafe { std::mem::transmute::<_, Closure<dyn FnMut()>>(closure) };
-        self.closures.borrow_mut().insert(reason, closure);
-        Ok(())
-    }
-
-    //mi mouse_down
-    /// The event handler for mouse being pressed
-    fn mouse_down(&self, event: MouseEvent) {}
-
-    //mi mouse_move
-    /// The event handler for mouse moving, whether the button is pressed or not
-    fn mouse_move(&self, event: MouseEvent) {}
-
-    //mi mouse_up
-    /// The event handler for mouse being released
-    fn mouse_up(&self, event: MouseEvent) {}
 
     //mi create_model
     fn create_model(&self) -> Result<WebGlVertexArrayObject, String> {
@@ -190,7 +120,7 @@ impl Inner {
         // );
         // }
 
-        let len = std::mem::size_of::<f32>() * vertices.len();
+        let len = std::mem::size_of_val(vertices);
         let data = &vertices[0] as *const f32 as *const u8;
         let data = unsafe { std::slice::from_raw_parts(data, len) };
         self.model3d.buffer_data_with_u8_array(
@@ -206,7 +136,7 @@ impl Inner {
         self.model3d.bind_vertex_array(Some(&vao));
 
         self.model3d.vertex_attrib_pointer_with_i32(
-            position_attribute_location as u32,
+            position_attribute_location,
             3,
             WebGl2RenderingContext::FLOAT,
             false,
@@ -214,7 +144,7 @@ impl Inner {
             0,
         );
         self.model3d
-            .enable_vertex_attrib_array(position_attribute_location as u32);
+            .enable_vertex_attrib_array(position_attribute_location);
         self.model3d
             .bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, None);
         Ok(vao)
@@ -244,12 +174,15 @@ impl Inner {
     }
 
     //mp create_f2
-    pub fn create_f2(&mut self, glb: &[u8]) -> Result<(), String> {
+    pub fn create_f2(&mut self, glb: &[u8], node_names: &[&str]) -> Result<(), String> {
         if self.f.is_some() {
             return Err("Already created".to_string());
         }
         crate::console_log!("create_f2 create model {}", glb.len());
-        let m = Box::new(crate::model::Base::new(&mut self.model3d, Some(glb))?);
+        let m = Box::new(crate::model::Base::new(
+            &mut self.model3d,
+            Some((glb, node_names)),
+        )?);
         crate::console_log!("create_f2 created model");
         let f = {
             let m_ref =
@@ -269,7 +202,7 @@ impl Inner {
     }
 
     //mp draw
-    pub fn draw(&mut self, vert_count: i32) {
+    pub fn draw(&mut self) {
         // self.model3d.enable(WebGl2RenderingContext::CULL_FACE);
         self.model3d.enable(WebGl2RenderingContext::DEPTH_TEST);
         self.model3d.clear_color(0.0, 0.0, 0.0, 1.0);
