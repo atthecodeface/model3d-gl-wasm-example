@@ -9,8 +9,10 @@ import init, {CanvasWebgl} from "./pkg/canvas_webgl.js";
 
 class Thing {
     constructor() {
-    this.run_step_pending = false;
-    this.animating = false;
+        this.run_step_pending = false;
+        this.animating = false;
+        this.filename = "ToyCar.glb";
+        this.node_names = ["0"];
     }
     set_animating(a) {
         console.log("Set animating",a, this.run_step_pending);
@@ -37,7 +39,7 @@ class Thing {
 
     //mp fetch_glb
     async fetch_glb() {
-        return fetch(`DamagedHelmet.glb`)
+        return fetch(this.filename)
             .then((response) => {
                 if (!response.ok) {
                     throw new Error(`Failed to fetch interesting points: ${response.status}`);
