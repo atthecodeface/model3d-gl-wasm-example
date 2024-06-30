@@ -1,8 +1,9 @@
 //a Imports
+use std::collections::HashMap;
+
 use model3d_base::Instance;
 use model3d_gl::{Gl, ShaderInstantiable, UniformBuffer};
 
-use crate::base_shader;
 use crate::objects;
 
 //a Light, WorldData
@@ -54,8 +55,23 @@ pub struct Instances<'inst, G: Gl> {
 //ip Base
 impl<G: Gl> Base<G> {
     //fp new
-    pub fn new(gl: &mut G, opt_glb: Option<(&[u8], &[&str])>) -> Result<Self, String> {
-        let shader_program = base_shader::compile_shader_program(gl)?;
+    pub fn new(
+        gl: &mut G,
+        files: &HashMap<String, Vec<u8>>,
+        shader: &model3d_gl::ShaderProgramDesc,
+        filename: &str,
+        node_names: &[&str],
+    ) -> Result<Self, String> {
+        fn read_file(files: &HashMap<String, Vec<u8>>, filename: &str) -> Result<String, String> {
+            if let Some(data) = files.get(filename) {
+                Ok(std::str::from_utf8(data)
+                    .map_err(|e| format!("Failed to read shader program {filename}: {}", e))?
+                    .to_string())
+            } else {
+                Err(format!("Failed to find shader program {filename}"))
+            }
+        }
+        let shader_program = shader.compile(gl, &|f| read_file(files, f))?;
 
         let material_uid = 1;
         let world_uid = 2;
@@ -65,20 +81,10 @@ impl<G: Gl> Base<G> {
             .uniform_buffer_create(&material_data, false)
             .map_err(|_| "Could not create uniform buffer for material".to_string())?;
         gl.uniform_index_of_range(&material_gl, material_uid, 0, 0);
-        gl.program_bind_uniform_index(&shader_program, 1, material_uid)
-            .map_err(|_| "Could not bind uniform for material".to_string())?;
+        // gl.program_bind_uniform_index(&shader_program, 1, material_uid)
+        // .map_err(|_| "Could not bind uniform for material".to_string())?;
 
         let mut world_data = [WorldData::default(); 1];
-        world_data[0].view_matrix[0] = 1.;
-        world_data[0].view_matrix[5] = 1.;
-        world_data[0].view_matrix[10] = 1.;
-        world_data[0].view_matrix[15] = 1.;
-        world_data[0].lights[0].position = [2., 0., 0., 0.1];
-        world_data[0].lights[0].color = [1., 0., 0., 0.];
-        world_data[0].lights[1].position = [-1., 0., 0., 0.1];
-        world_data[0].lights[1].color = [0., 1., 0., 0.];
-        world_data[0].lights[2].position = [-1., 0., 0., -1.];
-        world_data[0].lights[2].color = [0., 0., 1., 0.];
 
         let world_gl = gl
             .uniform_buffer_create(&world_data, true)
@@ -87,13 +93,10 @@ impl<G: Gl> Base<G> {
         gl.program_bind_uniform_index(&shader_program, 2, world_uid)
             .map_err(|_| "Could not bind uniform for world".to_string())?;
 
-        let objects = {
-            if let Some((glb, node_names)) = opt_glb {
-                objects::new_of_glb(gl, glb, node_names).unwrap()
-            } else {
-                objects::new(gl).unwrap()
-            }
-        };
+        let glb = files
+            .get(filename)
+            .ok_or_else(|| format!("Failed to find GLB file {filename}"))?;
+        let objects = { objects::new_of_glb(gl, glb, node_names).unwrap() };
         Ok(Self {
             objects,
             shader_program,
@@ -160,21 +163,27 @@ pub struct GameState {
 
 //ip GameState
 impl GameState {
-    pub fn new() -> Self {
+    pub fn new(scale: f32) -> Self {
         let time: f32 = 0.0;
         let view_transformation = model3d_base::Transformation::new();
         let spin = geo_nd::quat::rotate_x(&geo_nd::quat::identity(), 0.01);
+
         let mut world_data = [WorldData::default(); 1];
-        world_data[0].view_matrix[0] = 1.;
-        world_data[0].view_matrix[5] = 1.;
-        world_data[0].view_matrix[10] = 1.;
+        world_data[0].view_matrix[1] = scale;
+        world_data[0].view_matrix[4] = scale;
+        world_data[0].view_matrix[10] = scale;
         world_data[0].view_matrix[15] = 1.;
-        world_data[0].lights[0].position = [2., 0., 0., 0.1];
-        world_data[0].lights[0].color = [1., 0., 0., 0.];
+
+        let distant = 0.8;
+        let ambient = 0.3;
+        world_data[0].lights[0].position = [5., 10., 0., 0.1];
+        world_data[0].lights[0].color = [1., 0.4, 0.4, 0.];
         world_data[0].lights[1].position = [-1., 0., 0., 0.1];
-        world_data[0].lights[1].color = [0., 1., 0., 0.];
+        world_data[0].lights[1].color = [0.4, 1., 0.3, 0.];
         world_data[0].lights[2].position = [-1., 0., 0., -1.];
-        world_data[0].lights[2].color = [0., 0., 1., 0.];
+        world_data[0].lights[2].color = [distant, distant, distant, 0.];
+        world_data[0].lights[3].position = [0., 0., 0., 0.];
+        world_data[0].lights[3].color = [ambient, ambient, ambient, 0.];
 
         Self {
             world_data,

@@ -6,9 +6,9 @@ use web_sys::HtmlCanvasElement;
 
 mod inner;
 use inner::Inner;
-pub mod shader;
+// pub mod shader;
 
-mod base_shader;
+// mod base_shader;
 mod model;
 mod objects;
 
@@ -59,18 +59,20 @@ impl CanvasWebgl {
         self.inner.shutdown()
     }
 
-    //mp create_f
-    pub fn create_f(&mut self) -> Result<(), JsValue> {
-        Ok(std::rc::Rc::get_mut(&mut self.inner).unwrap().create_f()?)
-    }
-
-    //mp create_f2
-    pub fn create_f2(&mut self, glb: JsValue) -> Result<(), JsValue> {
-        let glb = js_sys::Uint8Array::new(&glb);
-        let glb = glb.to_vec();
+    //mp add_file
+    pub fn add_file(&mut self, filename: &str, data: JsValue) -> Result<(), JsValue> {
+        let data = js_sys::Uint8Array::new(&data);
+        let data = data.to_vec();
         Ok(std::rc::Rc::get_mut(&mut self.inner)
             .unwrap()
-            .create_f2(&glb, &["0"])?)
+            .add_file(filename, data))
+    }
+
+    //mp create_f
+    pub fn create_f(&mut self, shader: &str, glb: &str) -> Result<(), JsValue> {
+        Ok(std::rc::Rc::get_mut(&mut self.inner)
+            .unwrap()
+            .create_f(shader, glb, &["0"])?)
     }
 
     //mp fill
