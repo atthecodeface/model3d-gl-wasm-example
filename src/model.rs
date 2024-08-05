@@ -1,22 +1,22 @@
 //a Imports
 use std::collections::HashMap;
 
-use model3d_base::Instance;
-use model3d_gl::{Gl, ShaderInstantiable, UniformBuffer};
+use mod3d_base::Instance;
+use mod3d_gl::{Gl, ShaderInstantiable, UniformBuffer};
 
 use crate::objects;
 
 //a Light, WorldData
 #[derive(Debug, Default)]
 pub struct Light {
-    position: model3d_gl::Vec4,
-    color: model3d_gl::Vec4,
+    position: mod3d_gl::Vec4,
+    color: mod3d_gl::Vec4,
 }
 
 #[derive(Debug, Default)]
 #[repr(C)]
 pub struct WorldData {
-    view_matrix: model3d_gl::Mat4,
+    view_matrix: mod3d_gl::Mat4,
     lights: [Light; 4],
 }
 
@@ -24,7 +24,7 @@ pub struct WorldData {
 //tp Base
 pub struct Base<G: Gl> {
     /// The instantiable objects
-    objects: model3d_base::Instantiable<G>,
+    objects: mod3d_base::Instantiable<G>,
     /// The shader programs
     shader_program: G::Program,
     /// Uniform buffers
@@ -38,7 +38,7 @@ pub struct Base<G: Gl> {
 /// ShaderInstantiable references the compiled Program and the Instantiable object (Base.objects)
 pub struct Instantiable<'inst, G: Gl> {
     /// The set of instances of shader_instantiable (only one of them!)
-    instantiables: model3d_gl::ShaderInstantiable<'inst, G>,
+    instantiables: mod3d_gl::ShaderInstantiable<'inst, G>,
 }
 
 //tp Instances
@@ -58,7 +58,7 @@ impl<G: Gl> Base<G> {
     pub fn new(
         gl: &mut G,
         files: &HashMap<String, Vec<u8>>,
-        shader: &model3d_gl::ShaderProgramDesc,
+        shader: &mod3d_gl::ShaderProgramDesc,
         filename: &str,
         node_names: &[&str],
     ) -> Result<Self, String> {
@@ -157,15 +157,15 @@ impl<G: Gl> Base<G> {
 pub struct GameState {
     world_data: [WorldData; 1],
     time: f32,
-    view_transformation: model3d_base::Transformation,
-    spin: model3d_base::Quat,
+    view_transformation: mod3d_base::Transformation,
+    spin: mod3d_base::Quat,
 }
 
 //ip GameState
 impl GameState {
     pub fn new(scale: f32) -> Self {
         let time: f32 = 0.0;
-        let view_transformation = model3d_base::Transformation::new();
+        let view_transformation = mod3d_base::Transformation::new();
         let spin = geo_nd::quat::rotate_x(&geo_nd::quat::identity(), 0.01);
 
         let mut world_data = [WorldData::default(); 1];

@@ -1,4 +1,4 @@
-use model3d_gl::Gl;
+use mod3d_gl::Gl;
 const JSON: &str = r##"
 {
     "asset" : {
@@ -153,7 +153,7 @@ pub fn new_of_glb<G: Gl>(
     render_context: &mut G,
     glb: &[u8],
     node_names: &[&str],
-) -> Result<model3d_base::Instantiable<G>, String> {
+) -> Result<mod3d_base::Instantiable<G>, String> {
     fn buf_reader(file: &mut &[u8], byte_length: usize) -> Result<Option<Vec<u8>>, std::io::Error> {
         use std::io::Read;
         let mut buffer = vec![0; byte_length];
@@ -164,16 +164,16 @@ pub fn new_of_glb<G: Gl>(
 
     let mut file = glb;
     crate::console_log!("Before call file {} ", file.len());
-    let (mut gltf, opt_buffer_0) = model3d_gltf::glb_load(&mut file, &buf_reader, 16 * 1000 * 1000)
+    let (mut gltf, opt_buffer_0) = mod3d_gltf::glb_load(&mut file, &buf_reader, 16 * 1000 * 1000)
         .map_err(|e| format!("{e:?}"))?;
 
-    let mut od = model3d_gltf::ObjectData::new(&gltf);
+    let mut od = mod3d_gltf::ObjectData::new(&gltf);
     for n in node_names {
         od.add_object(&gltf, gltf.get_node(n).unwrap());
     }
     od.derive_uses(&gltf);
     let buffers = od
-        .gen_byte_buffers(&mut gltf, &model3d_gltf::buf_parse_fail, opt_buffer_0)
+        .gen_byte_buffers(&mut gltf, &mod3d_gltf::buf_parse_fail, opt_buffer_0)
         .map_err(|e| format!("{e:?}"))?;
     let buffer_data = od.gen_buffer_data::<_, _, G>(&|x| &buffers[x]);
     let buffer_accessors = od.gen_accessors(&gltf, &|x| &buffer_data[x]);
@@ -213,7 +213,7 @@ pub fn new_of_glb<G: Gl>(
 
     fn texture_of_image<'textures, G>(
         image: &'textures image::DynamicImage,
-    ) -> model3d_base::Texture<'textures, G>
+    ) -> mod3d_base::Texture<'textures, G>
     where
         G: Gl,
     {
@@ -221,23 +221,23 @@ pub fn new_of_glb<G: Gl>(
         let h = image.height() as usize;
         let (elements_per_data, ele_type) = {
             match image.color() {
-                image::ColorType::L8 => (1, model3d_base::BufferElementType::Int8),
-                image::ColorType::La8 => (2, model3d_base::BufferElementType::Int8),
-                image::ColorType::Rgb8 => (3, model3d_base::BufferElementType::Int8),
-                image::ColorType::Rgba8 => (4, model3d_base::BufferElementType::Int8),
-                image::ColorType::L16 => (1, model3d_base::BufferElementType::Int16),
-                image::ColorType::La16 => (2, model3d_base::BufferElementType::Int16),
-                image::ColorType::Rgb16 => (3, model3d_base::BufferElementType::Int16),
-                image::ColorType::Rgba16 => (4, model3d_base::BufferElementType::Int16),
-                image::ColorType::Rgb32F => (3, model3d_base::BufferElementType::Float16),
-                image::ColorType::Rgba32F => (4, model3d_base::BufferElementType::Float16),
-                _ => (1, model3d_base::BufferElementType::Int8),
+                image::ColorType::L8 => (1, mod3d_base::BufferElementType::Int8),
+                image::ColorType::La8 => (2, mod3d_base::BufferElementType::Int8),
+                image::ColorType::Rgb8 => (3, mod3d_base::BufferElementType::Int8),
+                image::ColorType::Rgba8 => (4, mod3d_base::BufferElementType::Int8),
+                image::ColorType::L16 => (1, mod3d_base::BufferElementType::Int16),
+                image::ColorType::La16 => (2, mod3d_base::BufferElementType::Int16),
+                image::ColorType::Rgb16 => (3, mod3d_base::BufferElementType::Int16),
+                image::ColorType::Rgba16 => (4, mod3d_base::BufferElementType::Int16),
+                image::ColorType::Rgb32F => (3, mod3d_base::BufferElementType::Float16),
+                image::ColorType::Rgba32F => (4, mod3d_base::BufferElementType::Float16),
+                _ => (1, mod3d_base::BufferElementType::Int8),
             }
         };
         let data = image.as_bytes();
-        model3d_base::Texture::new(data, (w, h, 0), ele_type, elements_per_data)
+        mod3d_base::Texture::new(data, (w, h, 0), ele_type, elements_per_data)
     }
-    let textures: Vec<model3d_base::Texture<G>> =
+    let textures: Vec<mod3d_base::Texture<G>> =
         od.gen_textures(&gltf, &|i| &images[i], &texture_of_image);
     let materials = od.gen_materials(&gltf);
     let mut obj = od.gen_object(&gltf, &vertices, &textures, &materials);

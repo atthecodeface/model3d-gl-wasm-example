@@ -8,9 +8,9 @@ use wasm_bindgen::prelude::*;
 use web_sys::HtmlCanvasElement;
 use web_sys::{WebGl2RenderingContext, WebGlVertexArrayObject};
 
-use model3d_gl::Gl;
-use model3d_gl::{GlProgram, Model3DWebGL};
-type Program = <Model3DWebGL as model3d_gl::Gl>::Program;
+use mod3d_gl::Gl;
+use mod3d_gl::{GlProgram, Model3DWebGL};
+type Program = <Model3DWebGL as mod3d_gl::Gl>::Program;
 
 // use crate::shader;
 
@@ -32,7 +32,7 @@ pub struct Inner {
     /// when this module used event listeners
     #[allow(dead_code)]
     canvas: HtmlCanvasElement,
-    model3d: model3d_gl::Model3DWebGL,
+    model3d: mod3d_gl::Model3DWebGL,
     files: HashMap<String, Vec<u8>>,
     f: Option<F>,
 }
@@ -95,7 +95,7 @@ impl Inner {
             .get(shader_filename)
             .ok_or_else(|| format!("Failed to find shader file {shader_filename}"))?;
         let shader = std::str::from_utf8(shader).map_err(|_| "Bad UTF8 for shader".to_string())?;
-        let shader_program_desc: model3d_gl::ShaderProgramDesc = serde_json::from_str(&shader)
+        let shader_program_desc: mod3d_gl::ShaderProgramDesc = serde_json::from_str(&shader)
             .map_err(|e| format!("Failed to parse shader desc {e}"))?;
 
         let m = Box::new(crate::model::Base::new(

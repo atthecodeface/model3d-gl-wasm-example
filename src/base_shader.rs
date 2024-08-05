@@ -110,12 +110,12 @@ pub fn compile_shader_program<G: Gl>(model3d: &G) -> Result<<G as Gl>::Program, 
     model3d.link_program(
         &[&vert_shader, &frag_shader],
         &[
-            ("Position", model3d_base::VertexAttr::Position),
-            ("Normal", model3d_base::VertexAttr::Normal),
+            ("Position", mod3d_base::VertexAttr::Position),
+            ("Normal", mod3d_base::VertexAttr::Normal),
         ],
         &[
-            ("uModelMatrix", model3d_gl::UniformId::ModelMatrix),
-            ("uMeshMatrix", model3d_gl::UniformId::MeshMatrix),
+            ("uModelMatrix", mod3d_gl::UniformId::ModelMatrix),
+            ("uMeshMatrix", mod3d_gl::UniformId::MeshMatrix),
         ],
         &[("Material", 1), ("World", 2)],
     )
